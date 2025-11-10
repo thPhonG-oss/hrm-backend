@@ -20,6 +20,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 @EnableWebSecurity
@@ -40,6 +41,7 @@ public class SecurityConfig{
                 .authorizeHttpRequests(authorizeRequests ->
                         authorizeRequests
                                 .requestMatchers("/api/v1/auth/**").permitAll()
+                                .requestMatchers("/oauth2/callback").permitAll()
                                 .anyRequest().authenticated()
                 ).sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -66,7 +68,9 @@ public class SecurityConfig{
         configuration.setAllowedOrigins(List.of("http://localhost:3000", "https://hrm-frontend-phi.vercel.app"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowCredentials(true);
-        configuration.setExposedHeaders(List.of("Authorization", "Cache-Control", "Content-Type"));
+        configuration.setAllowedHeaders(List.of("*"));
+
+        configuration.setExposedHeaders(List.of("Authorization", "Cache-Control", "Content-Type", "Set-Cookie"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

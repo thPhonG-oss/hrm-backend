@@ -23,7 +23,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtils jwtUtils;
-    private UserDetailsService userDetailsService;
+    private final UserDetailsService userDetailsService;
 
 //    @Override
 //    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
