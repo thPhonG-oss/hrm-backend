@@ -56,6 +56,16 @@ public class AuthServiceImpl {
         return userMapper.toUserResponseDTO(userRepository.save(user));
     }
 
+
+    public boolean authenticate(String token){
+        log.info("Authenticating token: " + token);
+
+        String username = jwtUtils.getUsernameFromToken(token);
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
+
+        return jwtUtils.validateToken(token);
+    }
+
     @Transactional
     public AuthResponse login(LoginRequest loginRequest){
         User user = userRepository.findByUsername(loginRequest.getUsername())
@@ -75,6 +85,7 @@ public class AuthServiceImpl {
                 .user(user)
                 .expiresAt(LocalDateTime.now().plusDays(7))
                 .build();
+
         refreshTokenRepository.save(refreshTokenEntity);
 
         UserResponseDTO userResponseDTO = UserResponseDTO.builder()
@@ -100,13 +111,16 @@ public class AuthServiceImpl {
         if(refreshToken == null){
             throw new RuntimeException("Refresh token is null");
         }
+        if(!jwtUtils.validateToken(refreshToken)){
+            throw new RuntimeException("Invalid refresh token");
+        }
 
         String username = jwtUtils.getUsernameFromToken(refreshToken);
         User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
 
         RefreshToken existedToken = refreshTokenRepository.findByUser(user).orElseThrow(() -> new RuntimeException("Refresh token not found"));
 
-        log.info("Existed Refresh token: {}", existedToken);
+        log.info("Existed Refresh token: {}", existedToken.getToken());
         refreshTokenRepository.delete(existedToken);
 
         ResponseCookie jwtCookie = jwtUtils.clearCookie();
@@ -116,13 +130,16 @@ public class AuthServiceImpl {
     }
 
     @Transactional
-    public AuthResponse refreshAccessToken(String refreshToken){
+    public AuthResponse refreshAccessToken(HttpServletRequest request, HttpServletResponse response){
+
+        String refreshToken = jwtUtils.getJwtFromCookies(request);
+
+
         log.info("Refresh token: {}", refreshToken);
 
         if(refreshToken == null){
             throw new RuntimeException("Refresh token is null");
         }
-
 
         if(!jwtUtils.validateToken(refreshToken)){
             throw new RuntimeException("Invalid refresh token");

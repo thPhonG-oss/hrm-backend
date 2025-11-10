@@ -11,6 +11,7 @@ import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.jwt.SignedJWT;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
@@ -23,6 +24,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.UUID;
 
+@Slf4j
 @Component
 public class JwtUtils {
     @Value("${jwt.secret}")
@@ -51,7 +53,7 @@ public class JwtUtils {
                 .path("/api")
                 .httpOnly(false)
                 .sameSite("Lax")
-                .maxAge(Duration.ofDays(7))
+                .maxAge(Duration.ofSeconds(refreshTokenExpiration))
                 .build();
     }
 
@@ -60,7 +62,7 @@ public class JwtUtils {
                 .path("/api")
                 .httpOnly(false)
                 .sameSite("Lax")
-                .maxAge(Duration.ofDays(7))
+                .maxAge(Duration.ofSeconds(refreshTokenExpiration))
                 .build();
     }
 
@@ -69,7 +71,7 @@ public class JwtUtils {
                 .path("/api")
                 .httpOnly(false)
                 .sameSite("Lax")
-                .maxAge(Duration.ofDays(0))
+                .maxAge(Duration.ZERO)
                 .build();
     }
 
@@ -79,7 +81,7 @@ public class JwtUtils {
                     .subject(username)
                     .issueTime(new Date())
                     .jwtID(UUID.randomUUID().toString())
-                    .expirationTime(Date.from((Instant.now().plus(expiration, ChronoUnit.MILLIS))))
+                    .expirationTime(Date.from((Instant.now().plus(expiration, ChronoUnit.SECONDS))))
                     .build();
 
             SignedJWT signedJWT = new SignedJWT(
@@ -112,12 +114,12 @@ public class JwtUtils {
             SignedJWT signedJWT = (SignedJWT) JWTParser.parse(token);
             JWSVerifier verifier = new MACVerifier(secret.getBytes());
 
-            if(!signedJWT.verify(verifier)){
-                return false;
-            }
+            boolean verified = signedJWT.verify(verifier);
+            log.info("Verified token is " + verified);
 
             Date expirationDate = signedJWT.getJWTClaimsSet().getExpirationTime();
-            return expirationDate.after(new Date());
+            log.info("Expiration Date is " + expirationDate);
+            return (verified && expirationDate.after(Date.from(Instant.now())));
         } catch (Exception e){
             return false;
         }
@@ -133,9 +135,13 @@ public class JwtUtils {
     }
 
     public String getJwtFromCookies(HttpServletRequest request){
-        Cookie cookie = WebUtils.getCookie(request, "refreshToken");
-        if(cookie != null){
-            return cookie.getValue();
+        Cookie[] cookies = request.getCookies();
+
+        for(Cookie cookie : cookies){
+            if("refreshToken".equals(cookie.getName())){
+                log.info("Refresh token is " + cookie.getValue());
+                return cookie.getValue();
+            }
         }
         return null;
     }

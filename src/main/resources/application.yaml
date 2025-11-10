@@ -43,7 +43,7 @@ frontend:
 jwt:
   secret: 8b66d6e9b70c72dd14b47506679a8c0a7c35ebade31376edeff07d7c83de8c72
   access-token-validity-seconds: 3600
-  refresh-token-validity-seconds: 86400
+  refresh-token-validity-seconds:  604800
 
 logging:
   level:

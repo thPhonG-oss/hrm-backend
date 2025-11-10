@@ -38,6 +38,12 @@ public class AuthController {
                 .body(authResponse.getUserInfo());
     }
 
+    @PostMapping("/authenticate")
+    public ResponseEntity<Object> authenticate(@RequestBody Map<String, String> token){
+        boolean isValid = authService.authenticate(token.get("token"));
+        return ResponseEntity.ok().body(isValid);
+    }
+
     @PostMapping("/logout")
     public ResponseEntity<Object> logout(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse){
         ResponseCookie clearJwtCookie = authService.logout(httpServletRequest, httpServletResponse);
@@ -47,9 +53,8 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<UserResponseDTO> refresh(@RequestBody Map<String, String> refreshRequest){
-        AuthResponse authResponse = authService.refreshAccessToken(refreshRequest.get("refreshToken"));
-        return ResponseEntity.ok()
-                .body(authResponse.getUserInfo());
+    public ResponseEntity<UserResponseDTO> refresh(HttpServletRequest request, HttpServletResponse response){
+        UserResponseDTO userResponseDTO = authService.refreshAccessToken(request, response).getUserInfo();
+        return ResponseEntity.ok().body(userResponseDTO);
     }
 }
